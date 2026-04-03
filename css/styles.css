@@ -1744,7 +1744,23 @@ body {
 
 /* ── Responsive tweaks ── */
 @media (max-width: 600px) {
-  .scene-chapter { align-items: flex-start; padding-top: 6rem; }
+  .scene-chapter {
+    align-items: flex-start;
+    padding-top: 6rem;
+  }
+  .scene-chapter__inner {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1.2rem 1.4rem;
+    border-radius: 16px;
+  }
+  /* CTA chapter: move buttons to bottom */
+  #ch-4 {
+    align-items: flex-end;
+    padding-top: 0;
+    padding-bottom: 6rem;
+  }
   .scene-headline    { font-size: 2.8rem; }
   .scene-headline--md { font-size: 2.4rem; }
   .scene-cta { flex-direction: column; }
