@@ -1514,6 +1514,7 @@ body {
 
   .spotlight__inner { grid-template-columns: 1fr; gap: 3rem; }
   .spotlight__visual { order: -1; }
+  .spotlight-scroll-scene { height: 400vh; }
 
   .features__grid { grid-template-columns: 1fr; }
 
