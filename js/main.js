@@ -6,107 +6,16 @@
 
 /* ══════════════════════════════════════════════════════
    THREE.JS SCROLL-DRIVEN VIDEO ANIMATION
+   On mobile: autoplay video, no scroll-seeking (performance).
+   On desktop: full scroll-driven animation with Three.js.
    ══════════════════════════════════════════════════════ */
+const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 (function initScrollAnimation() {
   const canvas      = document.getElementById('gl-canvas');
   const scrollScene = document.getElementById('scroll-scene');
   const video       = document.getElementById('scroll-video');
-  if (!canvas || !scrollScene || !video || typeof THREE === 'undefined') return;
-
-  /* ── Renderer — capped pixel ratio for performance ── */
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0xffffff, 1);
-
-  /* ── Scene & camera (orthographic full-screen quad) ── */
-  const scene  = new THREE.Scene();
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-  /* ── VideoTexture ── */
-  const videoTexture = new THREE.VideoTexture(video);
-  videoTexture.minFilter = THREE.LinearFilter;
-  videoTexture.magFilter = THREE.LinearFilter;
-
-  /* ── Shader with cover-fit UV + cinematic dark treatment ──
-   *
-   * Cover-fit formula:  uv = (rawUv − 0.5) × coverScale + 0.5
-   *   viewport wider  than video → sy = vidAspect / vAspect   (crops top/bottom)
-   *   viewport taller than video → sx = vAspect  / vidAspect  (crops left/right)
-   *
-   * Dark treatment applied in the fragment shader so it works
-   * even on bright/white source videos like Apple promo clips.
-   */
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      map:        { value: videoTexture },
-      coverScale: { value: new THREE.Vector2(1, 1) },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position.xy, 0.0, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D map;
-      uniform vec2 coverScale;
-      varying vec2 vUv;
-
-      void main() {
-        vec2 uv = (vUv - 0.5) * coverScale + 0.5;
-
-        vec3 color = vec3(1.0); // white outside video bounds
-
-        if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
-          color = texture2D(map, uv).rgb;
-
-          /* Seamless edge fade — dissolves the video into white on all four sides.
-           * min(uv, 1-uv) = distance to nearest UV edge (0 at boundary, 0.5 at center).
-           * smoothstep ramps that over fadeW UV units → clean feathered blend.
-           * Multiplying the x and y alphas handles corners naturally. */
-          float fadeW = 0.10;
-          float ax = smoothstep(0.0, fadeW, min(uv.x, 1.0 - uv.x));
-          float ay = smoothstep(0.0, fadeW, min(uv.y, 1.0 - uv.y));
-          color = mix(vec3(1.0), color, ax * ay);
-        }
-
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `,
-  });
-
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-  scene.add(mesh);
-
-  /* ── Contain scale — video fits fully inside the viewport (no cropping).
-   *   Bars (left/right or top/bottom) are filled with the shader's dark bg.
-   *   Formula: uv = (vUv - 0.5) * coverScale + 0.5
-   *     sx > 1 → UV x goes beyond [0,1] → bars on left/right (portrait video)
-   *     sy > 1 → UV y goes beyond [0,1] → bars on top/bottom (landscape video)  */
-  function updateCoverScale() {
-    const vw = video.videoWidth  || 1920;
-    const vh = video.videoHeight || 1080;
-    const vAspect   = window.innerWidth  / window.innerHeight;
-    const vidAspect = vw / vh;
-    let sx, sy;
-    if (vAspect > vidAspect) {
-      // Viewport wider → fit by height, bars on left/right
-      sx = vAspect / vidAspect;
-      sy = 1;
-    } else {
-      // Viewport taller → fit by width, bars on top/bottom
-      sx = 1;
-      sy = vidAspect / vAspect;
-    }
-    material.uniforms.coverScale.value.set(sx, sy);
-  }
-  updateCoverScale();
-
-  /* ── Scroll state ── */
-  let rawProgress    = 0;
-  let smoothProgress = 0;
+  if (!canvas || !scrollScene || !video) return;
 
   /* ── Chapter definitions ── */
   const chapters = [
@@ -124,8 +33,6 @@
     chapters.forEach(ch => {
       if (!ch.el) return;
       ch.el.classList.toggle('active', p >= ch.start && p <= ch.end);
-
-      /* Parallax: inner content drifts up at ~30 % of scroll speed */
       const localP  = (p - ch.start) / Math.max(ch.end - ch.start, 0.001);
       const clamped = Math.max(0, Math.min(1, localP));
       const inner   = ch.el.querySelector('.scene-chapter__inner');
@@ -136,56 +43,127 @@
     if (progressFill) progressFill.style.transform = `scaleX(${p})`;
   }
 
-  /* ── Scroll handler ── */
+  /* ════ MOBILE: autoplay video, chapters based on scroll ════ */
+  if (isMobile) {
+    if (typeof THREE !== 'undefined') return; // skip Three.js entirely if not loaded
+
+    // Show video directly on canvas area
+    video.style.display = 'block';
+    video.style.position = 'absolute';
+    video.style.inset = '0';
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'contain';
+    video.style.visibility = 'visible';
+    canvas.style.display = 'none';
+
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.play().catch(() => {});
+
+    // Chapters still follow scroll
+    window.addEventListener('scroll', () => {
+      const maxScroll = scrollScene.offsetHeight - window.innerHeight;
+      const p = maxScroll > 0 ? Math.max(0, Math.min(1, window.scrollY / maxScroll)) : 0;
+      updateOverlay(p);
+    }, { passive: true });
+
+    // Show first chapter
+    updateOverlay(0);
+    return;
+  }
+
+  /* ════ DESKTOP: full Three.js scroll-driven animation ════ */
+  if (typeof THREE === 'undefined') return;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0xffffff, 1);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+  const videoTexture = new THREE.VideoTexture(video);
+  videoTexture.minFilter = THREE.LinearFilter;
+  videoTexture.magFilter = THREE.LinearFilter;
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      map:        { value: videoTexture },
+      coverScale: { value: new THREE.Vector2(1, 1) },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D map;
+      uniform vec2 coverScale;
+      varying vec2 vUv;
+      void main() {
+        vec2 uv = (vUv - 0.5) * coverScale + 0.5;
+        vec3 color = vec3(1.0);
+        if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
+          color = texture2D(map, uv).rgb;
+          float fadeW = 0.10;
+          float ax = smoothstep(0.0, fadeW, min(uv.x, 1.0 - uv.x));
+          float ay = smoothstep(0.0, fadeW, min(uv.y, 1.0 - uv.y));
+          color = mix(vec3(1.0), color, ax * ay);
+        }
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+  });
+
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+  scene.add(mesh);
+
+  function updateCoverScale() {
+    const vw = video.videoWidth  || 1920;
+    const vh = video.videoHeight || 1080;
+    const vAspect   = window.innerWidth  / window.innerHeight;
+    const vidAspect = vw / vh;
+    let sx, sy;
+    if (vAspect > vidAspect) { sx = vAspect / vidAspect; sy = 1; }
+    else { sx = 1; sy = vidAspect / vAspect; }
+    material.uniforms.coverScale.value.set(sx, sy);
+  }
+  updateCoverScale();
+
+  let rawProgress = 0, smoothProgress = 0;
+
   window.addEventListener('scroll', () => {
     const maxScroll = scrollScene.offsetHeight - window.innerHeight;
-    rawProgress = maxScroll > 0
-      ? Math.max(0, Math.min(1, window.scrollY / maxScroll))
-      : 0;
+    rawProgress = maxScroll > 0 ? Math.max(0, Math.min(1, window.scrollY / maxScroll)) : 0;
   }, { passive: true });
 
-  /* ── Video loading ── */
   video.addEventListener('loadedmetadata', updateCoverScale);
 
-  // Attempt play→pause to unlock seeking in browsers that require it.
-  // If autoplay is blocked, retry on the first scroll interaction.
   function unlockVideo() {
     video.play().then(() => { video.pause(); video.currentTime = 0; }).catch(() => {});
   }
-
   video.load();
   unlockVideo();
   window.addEventListener('scroll', unlockVideo, { once: true });
 
-  /* ── Seeking — only one seek at a time ──
-   * Setting currentTime while video.seeking = true causes browsers to queue
-   * conflicting seeks and freeze. We track a pendingTime and apply it the
-   * moment the previous seek finishes via the 'seeked' event.            */
   let pendingTime = null;
-
   video.addEventListener('seeked', () => {
-    if (pendingTime !== null) {
-      video.currentTime = pendingTime;
-      pendingTime = null;
-    }
+    if (pendingTime !== null) { video.currentTime = pendingTime; pendingTime = null; }
   });
-
   function seekTo(t) {
-    if (video.seeking) {
-      pendingTime = t;      // store; will be applied on 'seeked'
-    } else {
-      pendingTime = null;
-      video.currentTime = t;
-    }
+    if (video.seeking) { pendingTime = t; }
+    else { pendingTime = null; video.currentTime = t; }
   }
 
-  /* ── Animation loop ── */
   let lastSeekTime = -1;
   function animate() {
     requestAnimationFrame(animate);
-
-    smoothProgress += (rawProgress - smoothProgress) * 0.12;
-
+    smoothProgress += (rawProgress - smoothProgress) * 0.08;
     if (video.duration > 0) {
       const targetTime = Math.round(smoothProgress * video.duration * 30) / 30;
       if (targetTime !== lastSeekTime) {
@@ -194,12 +172,10 @@
         videoTexture.needsUpdate = true;
       }
     }
-
     updateOverlay(smoothProgress);
     renderer.render(scene, camera);
   }
 
-  /* ── Resize ── */
   window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     updateCoverScale();
@@ -210,14 +186,23 @@
 
 /* ══════════════════════════════════════════════════════
    SPOTLIGHT SCROLL ANIMATION  (ipadgirando.mp4)
-   Seeks video.currentTime directly — no canvas needed.
+   On mobile: autoplay. On desktop: scroll-driven seeking.
    ══════════════════════════════════════════════════════ */
 (function initSpotlightAnimation() {
   const sceneEl = document.getElementById('spotlight-scene');
   const video   = document.getElementById('spotlight-video');
   if (!sceneEl || !video) return;
 
-  /* Scroll progress relative to spotlight section */
+  /* ════ MOBILE: just autoplay ════ */
+  if (isMobile) {
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.play().catch(() => {});
+    return;
+  }
+
+  /* ════ DESKTOP: scroll-driven seeking ════ */
   let rawP = 0, smoothP = 0;
   window.addEventListener('scroll', () => {
     const top = sceneEl.getBoundingClientRect().top + window.scrollY;
@@ -225,17 +210,15 @@
     rawP = Math.max(0, Math.min(1, (window.scrollY - top) / max));
   }, { passive: true });
 
-  /* Freeze-safe seeking */
   let pendingTime = null;
   video.addEventListener('seeked', () => {
     if (pendingTime !== null) { video.currentTime = pendingTime; pendingTime = null; }
   });
   function seekTo(t) {
     if (video.seeking) { pendingTime = t; }
-    else               { pendingTime = null; video.currentTime = t; }
+    else { pendingTime = null; video.currentTime = t; }
   }
 
-  /* Unlock seeking: play→pause on load and first scroll */
   function unlock() {
     video.play().then(() => { video.pause(); video.currentTime = 0; }).catch(() => {});
   }
@@ -243,11 +226,10 @@
   unlock();
   window.addEventListener('scroll', unlock, { once: true });
 
-  /* Render loop */
   let lastT = -1;
   function animate() {
     requestAnimationFrame(animate);
-    smoothP += (rawP - smoothP) * 0.12;
+    smoothP += (rawP - smoothP) * 0.08;
     if (video.duration > 0) {
       const t = Math.round(smoothP * video.duration * 30) / 30;
       if (t !== lastT) { seekTo(t); lastT = t; }
