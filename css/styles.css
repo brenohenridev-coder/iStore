@@ -1750,11 +1750,6 @@ body {
     align-items: flex-start;
     padding-bottom: 2.5rem;
   }
-  .scene-chapter__inner {
-    background: transparent;
-    padding: 1.2rem 1.4rem;
-    width: 100%;
-  }
   .scene-headline    { font-size: 2.2rem; }
   .scene-headline--md { font-size: 1.8rem; }
   .scene-body { font-size: 0.85rem; }
