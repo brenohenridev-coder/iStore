@@ -1745,24 +1745,21 @@ body {
 /* ── Responsive tweaks ── */
 @media (max-width: 600px) {
   .scene-chapter {
-    align-items: flex-start;
-    padding-top: 6rem;
-  }
-  .scene-chapter__inner {
-    background: rgba(255,255,255,0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 1.2rem 1.4rem;
-    border-radius: 16px;
-  }
-  /* CTA chapter: move buttons to bottom */
-  #ch-4 {
     align-items: flex-end;
     padding-top: 0;
-    padding-bottom: 6rem;
+    padding-bottom: 2rem;
   }
-  .scene-headline    { font-size: 2.8rem; }
-  .scene-headline--md { font-size: 2.4rem; }
+  .scene-chapter__inner {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 1.2rem 1.4rem;
+    border-radius: 16px;
+    width: 100%;
+  }
+  .scene-headline    { font-size: 2.2rem; }
+  .scene-headline--md { font-size: 1.8rem; }
+  .scene-body { font-size: 0.85rem; }
   .scene-cta { flex-direction: column; }
   .scene-cta .btn { width: 100%; justify-content: center; }
 }
