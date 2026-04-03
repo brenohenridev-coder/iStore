@@ -1745,9 +1745,10 @@ body {
 /* ── Responsive tweaks ── */
 @media (max-width: 600px) {
   .scene-chapter {
-    align-items: flex-end;
-    padding-top: 0;
-    padding-bottom: 2rem;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-bottom: 2.5rem;
   }
   .scene-chapter__inner {
     background: rgba(255,255,255,0.85);
