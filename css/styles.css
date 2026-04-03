@@ -1751,11 +1751,8 @@ body {
     padding-bottom: 2.5rem;
   }
   .scene-chapter__inner {
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: transparent;
     padding: 1.2rem 1.4rem;
-    border-radius: 16px;
     width: 100%;
   }
   .scene-headline    { font-size: 2.2rem; }
