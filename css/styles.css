@@ -1744,6 +1744,7 @@ body {
 
 /* ── Responsive tweaks ── */
 @media (max-width: 600px) {
+  .scene-chapter { align-items: flex-start; padding-top: 6rem; }
   .scene-headline    { font-size: 2.8rem; }
   .scene-headline--md { font-size: 2.4rem; }
   .scene-cta { flex-direction: column; }
