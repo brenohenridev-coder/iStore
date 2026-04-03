@@ -1456,7 +1456,7 @@ body {
 .back-to-top {
   position: fixed;
   bottom: 2rem;
-  left: 2rem;
+  right: 2rem;
   width: 44px;
   height: 44px;
   background: var(--c-surface-2);
@@ -1743,7 +1743,7 @@ body {
 }
 
 @media (max-width: 768px) {
-  .whatsapp-float { display: flex; }
+  .whatsapp-float { display: none; }
 }
 
 /* ── Responsive tweaks ── */
