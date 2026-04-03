@@ -1514,12 +1514,16 @@ body {
 
   .spotlight__inner { grid-template-columns: 1fr; gap: 3rem; }
   .spotlight__visual { order: -1; }
-  .spotlight-scroll-scene { height: auto; }
-  .spotlight-scroll-scene .spotlight { position: relative; }
-  .spotlight__visual--video {
+  .spotlight-scroll-scene { height: 400vh; }
+  .spotlight-scroll-scene .spotlight {
     position: sticky;
-    top: 60px;
-    z-index: 1;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .spotlight-scroll-scene .spotlight__inner {
+    height: 100%;
+    overflow-y: auto;
   }
 
   .features__grid { grid-template-columns: 1fr; }
