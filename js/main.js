@@ -9,7 +9,8 @@
    On mobile: autoplay video, no scroll-seeking (performance).
    On desktop: full scroll-driven animation with Three.js.
    ══════════════════════════════════════════════════════ */
-const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isAndroid = /Android/i.test(navigator.userAgent);
+const isMobile = isAndroid && window.innerWidth <= 768;
 
 (function initScrollAnimation() {
   const canvas      = document.getElementById('gl-canvas');
