@@ -1755,7 +1755,7 @@ body {
   }
   .scene-headline    { font-size: 2.2rem; }
   .scene-headline--md { font-size: 1.8rem; }
-  .scene-body { font-size: 0.85rem; }
+  .scene-body { font-size: 0.85rem; color: #1d1d1f; }
   .scene-cta { flex-direction: column; }
   .scene-cta .btn { width: 100%; justify-content: center; }
 }
