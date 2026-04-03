@@ -1744,6 +1744,9 @@ body {
 
 /* ── Responsive tweaks ── */
 @media (max-width: 600px) {
+  #scroll-sticky {
+    background: transparent;
+  }
   .scene-chapter {
     flex-direction: column;
     justify-content: flex-end;
