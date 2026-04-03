@@ -13,9 +13,9 @@
   const video       = document.getElementById('scroll-video');
   if (!canvas || !scrollScene || !video || typeof THREE === 'undefined') return;
 
-  /* ── Renderer — full device pixel ratio + antialiasing ── */
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-  renderer.setPixelRatio(window.devicePixelRatio);
+  /* ── Renderer — capped pixel ratio for performance ── */
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0xffffff, 1);
 
@@ -180,15 +180,20 @@
   }
 
   /* ── Animation loop ── */
+  let lastSeekTime = -1;
   function animate() {
     requestAnimationFrame(animate);
 
-    smoothProgress += (rawProgress - smoothProgress) * 0.08;
+    smoothProgress += (rawProgress - smoothProgress) * 0.12;
 
     if (video.duration > 0) {
-      seekTo(smoothProgress * video.duration);
+      const targetTime = Math.round(smoothProgress * video.duration * 30) / 30;
+      if (targetTime !== lastSeekTime) {
+        seekTo(targetTime);
+        lastSeekTime = targetTime;
+        videoTexture.needsUpdate = true;
+      }
     }
-    videoTexture.needsUpdate = true;
 
     updateOverlay(smoothProgress);
     renderer.render(scene, camera);
@@ -239,10 +244,14 @@
   window.addEventListener('scroll', unlock, { once: true });
 
   /* Render loop */
+  let lastT = -1;
   function animate() {
     requestAnimationFrame(animate);
-    smoothP += (rawP - smoothP) * 0.08;
-    if (video.duration > 0) seekTo(smoothP * video.duration);
+    smoothP += (rawP - smoothP) * 0.12;
+    if (video.duration > 0) {
+      const t = Math.round(smoothP * video.duration * 30) / 30;
+      if (t !== lastT) { seekTo(t); lastT = t; }
+    }
   }
 
   animate();
