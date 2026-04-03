@@ -45,17 +45,9 @@ const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(na
 
   /* ════ MOBILE: autoplay video, chapters based on scroll ════ */
   if (isMobile) {
-    if (typeof THREE !== 'undefined') return; // skip Three.js entirely if not loaded
-
-    // Show video directly on canvas area
-    video.style.display = 'block';
-    video.style.position = 'absolute';
-    video.style.inset = '0';
-    video.style.width = '100%';
-    video.style.height = '100%';
-    video.style.objectFit = 'contain';
-    video.style.visibility = 'visible';
+    // Show video directly, hide Three.js canvas
     canvas.style.display = 'none';
+    video.style.cssText = 'display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;visibility:visible;';
 
     video.loop = true;
     video.muted = true;
